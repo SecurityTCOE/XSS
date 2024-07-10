@@ -7,25 +7,26 @@ app = Flask(__name__)
 CORS(app)  # Allow Cross-Origin Resource Sharing
 
 # Load the best model
-model = joblib.load('best_xss_model_random_forest_v1.pkl')
-
-def predict_xss(sentences):
-    return model.predict(sentences)[0]
+model = joblib.load('best_xss_model_count_vectorizer_v1.pkl')
 
 @app.route('/note', methods=['POST'])
 def check_note():
     note = request.json.get('note')
+    if note is None:
+        return jsonify({"error": "No note provided"}), 400
 
     # Predict XSS for the note
-    prediction_xss = predict_xss(note)
+    prediction_xss = model.predict([note.lower()])
 
     response = {
-        "is_xss": bool(prediction_xss),
-        "message": "No injection detected"
+        "is_xss": bool(prediction_xss[0]),  # Ensure to access the first element of the prediction
     }
 
     if response["is_xss"]:
         response["message"] = "XSS detected in note"
+    else:
+        response["message"] = "No injection detected"
+        
     return jsonify(response)
 
 if __name__ == '__main__':
